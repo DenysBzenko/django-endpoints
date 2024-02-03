@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
 from .models import Message
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateformat import DateFormat
@@ -38,9 +38,14 @@ def message_create(request):
             "created_at": message.created_at.strftime('%Y-%m-%d %H:%M:%S')
         })
     else:
-        return HttpResponseBadRequest("Only POST requests are allowed.")@csrf_exempt
+        return HttpResponseBadRequest("Only POST requests are allowed.")\
+
+
+@csrf_exempt
 def message_delete(request, id):
     if request.method == 'DELETE':
         message = get_object_or_404(Message, id=id)
         message.delete()
         return JsonResponse({"success": "Message deleted"})
+    else:
+        return HttpResponseNotAllowed(['DELETE'])

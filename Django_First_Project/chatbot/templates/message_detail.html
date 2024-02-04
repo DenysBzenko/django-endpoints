@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Message Detail</title>
+</head>
+<body>
+    <h1>Message by {{ message.author }}</h1>
+    <p>{{ message.content }}</p>
+    <p>Posted at: {{ message.created_at }}</p>
+    <a href="/messages/">Back to Messages List</a>
+</body>
+</html>

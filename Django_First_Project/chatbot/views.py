@@ -3,22 +3,20 @@ from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, Http
 from .models import Message
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateformat import DateFormat
+from django.shortcuts import render
+from .models import Message
 import json
 
 def home(request):
-    return JsonResponse({"endpoints": ["GET /messages/ - show all message ", "GET /messages/<id>/-  show message only one user for id", "POST /messages/create/ - create message ", "DELETE /messages/delete/<id>/ - delete message for id"]})
+    return render(request, 'home.html')
 
 def message_list(request):
-    messages = Message.objects.all().values('id', 'author', 'content', 'created_at')
-    messages_list = list(messages)
-    for message in messages_list:
-        message['created_at'] = DateFormat(message['created_at']).format('Y-m-d H:i:s')
-    return JsonResponse(messages_list, safe=False)
+    messages = Message.objects.all()
+    return render(request, 'messages_list.html', {'messages': messages})
 
 def message_detail(request, id):
     message = get_object_or_404(Message, id=id)
-    return JsonResponse({"id": message.id, "author": message.author, "content": message.content, "created_at": DateFormat(message.created_at).format('Y-m-d H:i:s')})
-
+    return render(request, 'message_detail.html', {'message': message})
 @csrf_exempt
 def message_create(request):
     if request.method == 'POST':
@@ -44,7 +42,10 @@ def message_create(request):
 @csrf_exempt
 def message_delete(request, id):
     if request.method == 'DELETE':
-        message = get_object_or_404(Message, id=id)
+        try:
+            message = Message.objects.get(id=id)
+        except Message.DoesNotExist:
+            return JsonResponse({'error': 'Message not found.'}, status=404)
         message.delete()
         return JsonResponse({"success": "Message deleted"})
     else:

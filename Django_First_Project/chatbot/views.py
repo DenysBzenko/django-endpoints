@@ -1,22 +1,25 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.http import Http404
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
-from .models import Message
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.dateformat import DateFormat
 from django.shortcuts import render
-from .models import Message
+from chatbot.data.data import messages
 import json
 
 def home(request):
     return render(request, 'home.html')
 
 def message_list(request):
-    messages = Message.objects.all()
-    return render(request, 'messages_list.html', {'messages': messages})
+    messages_list = messages['Messages']
+    return render(request, 'messages_list.html', {'messages': messages_list})
+
 
 def message_detail(request, id):
-    message = get_object_or_404(Message, id=id)
+
+    message = next((item for item in messages['Messages'] if item["id"] == str(id)), None)
+    if message is None:
+        raise Http404("Message not found")
     return render(request, 'message_detail.html', {'message': message})
+
 @csrf_exempt
 def message_create(request):
     if request.method == 'POST':

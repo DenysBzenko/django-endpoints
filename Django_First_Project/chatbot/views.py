@@ -55,7 +55,7 @@ def message_delete(request, id):
     message_index = next((index for (index, d) in enumerate(messages['Messages']) if d["id"] == str(id)), None)
     if message_index is not None:
         del messages['Messages'][message_index]
-        return HttpResponse(status=204)  # No Content
+        return HttpResponse(status=204) 
     else:
         return HttpResponseNotFound("Message not found")
 

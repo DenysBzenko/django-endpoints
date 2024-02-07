@@ -1,8 +1,11 @@
 from django.http import Http404
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed, HttpResponseNotFound, HttpResponseServerError
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render
 from chatbot.data.data import messages
+from django.views.decorators.http import require_http_methods
+
+
 import json
 
 def home(request):
@@ -21,35 +24,41 @@ def message_detail(request, id):
     return render(request, 'message_detail.html', {'message': message})
 
 @csrf_exempt
+@require_http_methods(["POST"])
 def message_create(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return HttpResponseBadRequest("Invalid JSON.")
+    try:
 
-        if 'author' not in data or 'content' not in data:
-            return HttpResponseBadRequest("Missing 'author' or 'content'.")
+        data = json.loads(request.body)
 
-        message = Message.objects.create(author=data['author'], content=data['content'])
-        return JsonResponse({
-            "id": message.id,
-            "author": message.author,
-            "content": message.content,
-            "created_at": message.created_at.strftime('%Y-%m-%d %H:%M:%S')
-        })
-    else:
-        return HttpResponseBadRequest("Only POST requests are allowed.")\
+        new_id = str(max([int(msg["id"]) for msg in messages['Messages']]) + 1)
+
+        new_message = {
+            "id": new_id,
+            "author": data.get("author"),
+            "content": data.get("content"),
+            "created_at": data.get("created_at", "Unknown date")
+        }
+
+        messages['Messages'].append(new_message)
+
+        return JsonResponse(new_message, status=201)
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON")
+    except Exception as e:
+        return HttpResponseServerError(str(e))
 
 
 @csrf_exempt
+@require_http_methods(["DELETE"])
 def message_delete(request, id):
-    if request.method == 'DELETE':
-        try:
-            message = Message.objects.get(id=id)
-        except Message.DoesNotExist:
-            return JsonResponse({'error': 'Message not found.'}, status=404)
-        message.delete()
-        return JsonResponse({"success": "Message deleted"})
+    global messages
+    message_index = next((index for (index, d) in enumerate(messages['Messages']) if d["id"] == str(id)), None)
+    if message_index is not None:
+        del messages['Messages'][message_index]
+        return HttpResponse(status=204)  # No Content
     else:
-        return HttpResponseNotAllowed(['DELETE'])
+        return HttpResponseNotFound("Message not found")
+
+
+def unknown_path(request):
+    return HttpResponseNotFound('<h1>Page not found</h1>')
